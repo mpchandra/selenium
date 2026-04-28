@@ -9,6 +9,14 @@ private static ThreadLocal<WebDriver> driver=new ThreadLocal<>();
 
 public static void init(){
 WebDriverManager.chromedriver().setup();
+
+ChromeOptions options = new ChromeOptions();
+
+        // Headless settings for CI (GitHub Actions)
+        options.addArguments("--headless=new");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-gpu");
 driver.set(new ChromeDriver());
 }
 
