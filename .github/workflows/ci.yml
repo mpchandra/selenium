@@ -12,7 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -20,5 +21,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build
-        run: mvn clean install
+      # ✅ Install Chrome
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      # ✅ Verify Chrome (debug step)
+      - name: Check Chrome version
+        run: google-chrome --version
+
+      # ✅ Run tests in headless mode
+      - name: Run Tests
+        run: mvn clean test -Dheadless=true
