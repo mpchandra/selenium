@@ -27,85 +27,37 @@
 #           sudo apt-get update
 #           sudo apt-get install -y google-chrome-stable
 
-#       # ✅ Verify Chrome (debug step)
+#       # ✅ Verify Chrome
 #       - name: Check Chrome version
 #         run: google-chrome --version
 
-#       # ✅ Run tests in headless mode
+#       # ✅ Run tests
 #       - name: Run Tests
 #         run: mvn clean test -Dheadless=true
 
-
-
-
-# name: Java CI Pipeline
-
-# on:
-#   push:
-#     branches: [ "main" ]
-
-# env:
-#   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Set up Java
-#         uses: actions/setup-java@v4
-#         with:
-#           distribution: 'temurin'
-#           java-version: '17'
-
-#       # Install Chrome
-#       - name: Install Google Chrome
+#       # ✅ Debug: Check Allure results (VERY IMPORTANT)
+#       - name: Check Allure Results
 #         run: |
-#           sudo apt-get update
-#           sudo apt-get install -y google-chrome-stable
+#           echo "Checking allure-results folder..."
+#           ls -R target/allure-results || echo "No allure results found!"
 
-#       # Debug Chrome version
-#       - name: Check Chrome version
-#         run: google-chrome --version
-
-#       # Run tests
-#       - name: Run Tests
-#         run: mvn clean test -Dheadless=true
-
-#       # Generate Allure Report
+#       # ✅ Generate Allure report
 #       - name: Generate Allure Report
 #         run: mvn allure:report
 
-#       # Upload report as artifact
+#       # ✅ Debug: Check generated report
+#       - name: Check Allure Report Files
+#         run: |
+#           echo "Checking generated report..."
+#           ls -R target/site/allure-maven-plugin
+
+#       # ✅ Upload report
 #       - name: Upload Allure Report
 #         uses: actions/upload-artifact@v4
 #         with:
 #           name: allure-report
 #           path: target/site/allure-maven-plugin
 
-      # Send email notification
-      # - name: Send Email Notification
-      #   if: always()
-      #   uses: dawidd6/action-send-mail@v3
-      #   with:
-      #     server_address: smtp.gmail.com
-      #     server_port: 465
-      #     username: ${{ secrets.EMAIL_USERNAME }}
-      #     password: ${{ secrets.EMAIL_PASSWORD }}
-      #     subject: "CI Result: ${{ job.status }}"
-      #     to: your-email@gmail.com
-      #     from: your-email@gmail.com
-      #     body: |
-      #       Build Status: ${{ job.status }}
-      #       Repository: ${{ github.repository }}
-      #       Branch: ${{ github.ref_name }}
-      #       Commit: ${{ github.sha }}
-
-      #       Download Allure Report from:
-      #       GitHub → Actions → Artifacts
 
 name: Java CI Pipeline
 
@@ -121,9 +73,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ✅ Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ✅ Java setup
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -140,21 +94,40 @@ jobs:
       - name: Check Chrome version
         run: google-chrome --version
 
+      # ✅ Install Allure CLI (CRITICAL FIX)
+      - name: Install Allure
+        run: |
+          wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz
+          tar -zxvf allure-2.27.0.tgz
+          sudo mv allure-2.27.0 /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/bin/allure
+          allure --version
+
       # ✅ Run tests
       - name: Run Tests
         run: mvn clean test -Dheadless=true
 
-      # ✅ Debug: Check Allure results (VERY IMPORTANT)
+      # ✅ Debug Allure results
       - name: Check Allure Results
         run: |
           echo "Checking allure-results folder..."
-          ls -R target/allure-results || echo "No allure results found!"
+          ls -R target/allure-results || (echo "No allure results found!" && exit 1)
 
-      # ✅ Generate Allure report
+      # ✅ Generate Allure report (FORCE correct path)
       - name: Generate Allure Report
-        run: mvn allure:report
+        run: mvn allure:report -Dallure.results.directory=target/allure-results
 
-      # ✅ Debug: Check generated report
+      # ✅ Verify report exists (FAIL FAST if not)
+      - name: Verify Allure Report
+        run: |
+          if [ -f "target/site/allure-maven-plugin/index.html" ]; then
+            echo "Allure report generated successfully"
+          else
+            echo "Allure report NOT generated"
+            exit 1
+          fi
+
+      # ✅ Debug report files
       - name: Check Allure Report Files
         run: |
           echo "Checking generated report..."
